@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react";
@@ -15,7 +14,7 @@ import Menu from "@mui/material/Menu";
 import { MenuIcon, SearchIcon } from "lucide-react";
 import Link from "next/link";
 import { useSearch } from "./SearchContext";
-import { useSession, signOut } from "next-auth/react"; 
+import { useSession, signOut } from "next-auth/react";
 
 const Search = styled("div")(({ theme }) => ({
   position: "relative",
@@ -57,11 +56,18 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 }));
 
 export default function DashBoard() {
+  const [mounted, setMounted] = React.useState(false); // ← ajoute cette ligne
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [mobileMoreAnchorEl, setMobileMoreAnchorEl] = React.useState<null | HTMLElement>(null);
   const { setSearchTerm } = useSearch();
-  const { data: session } = useSession(); // ✅ récupération de la session
+  const { data: session } = useSession();
   const isAuthenticated = !!session;
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null; // ← évite l’hydratation côté serveur prématurée
 
   const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -95,7 +101,7 @@ export default function DashBoard() {
       open={Boolean(anchorEl)}
       onClose={handleMenuClose}
     >
-      <MenuItem onClick={handleMenuClose}>Profile</MenuItem>
+      <MenuItem onClick={handleMenuClose}>Profil</MenuItem>
       <MenuItem onClick={handleLogout}>Déconnexion</MenuItem>
     </Menu>
   );
@@ -112,7 +118,7 @@ export default function DashBoard() {
     >
       <MenuItem onClick={handleProfileMenuOpen}>
         <IconButton size="large" color="inherit" />
-        <p>Profile</p>
+        <p>Profil</p>
       </MenuItem>
     </Menu>
   );

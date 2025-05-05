@@ -23,14 +23,15 @@
     "paths": {
       "@/*": ["./*"]
     },
-    "typeRoots": ["./node_modules/@types", "./types"]  // Ajout de "./types"
+    "types": ["next-auth"],        
+    "baseUrl": "."                 
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "types/next-auth.d.ts"  // Ajout de "types/next-auth.d.ts"
+    "types"                        
   ],
   "exclude": ["node_modules"]
 }

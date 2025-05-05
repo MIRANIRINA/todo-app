@@ -32,7 +32,7 @@ const Connexion = () => {
       toast.success("Connexion réussie");
       router.push("/tasklist");
     }
-  };
+  }
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
@@ -108,3 +108,5 @@ const Connexion = () => {
 };
 
 export default Connexion;
+
+

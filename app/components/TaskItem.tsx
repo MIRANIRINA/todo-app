@@ -7,9 +7,18 @@ interface Task {
   name: string;
   description: string;
   status: string;
-  userId: string;
   price: number;
+  userId: string;
+  userName?: string;
 }
+
+const getInitials = (nameOrEmail: string) => {
+  const parts = nameOrEmail.split(/[.\s@_-]/).filter(Boolean);
+  if (parts.length >= 2) {
+    return parts[0][0].toUpperCase() + parts[1][0].toUpperCase();
+  }
+  return parts[0]?.slice(0, 2).toUpperCase() || "";
+};
 
 const TaskItem = ({
   task,
@@ -38,7 +47,6 @@ const TaskItem = ({
         description: newDescription,
         status: newStatus,
         price: newPrice,
-        userId: currentUserId,
       }),
     });
     setLoading(false);
@@ -53,7 +61,7 @@ const TaskItem = ({
     const res = await fetch("/api/tasks", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: task.id, userId: currentUserId }),
+      body: JSON.stringify({ id: task.id }),
     });
     setLoading(false);
     if (res.ok) {
@@ -62,7 +70,19 @@ const TaskItem = ({
   };
 
   return (
-    <div className="p-4 bg-white border rounded-lg shadow">
+    <div className="p-4 bg-white border rounded-lg shadow space-y-2">
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-lg">
+          {getInitials(task.userName || task.userId)}
+        </div>
+        <div>
+          <div className="font-semibold text-sm">
+            {task.userName || "Utilisateur inconnu"}
+          </div>
+          <div className="text-xs text-gray-600">{task.userId}</div>
+        </div>
+      </div>
+
       {isEditing ? (
         <div className="space-y-2">
           <input

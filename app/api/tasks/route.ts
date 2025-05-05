@@ -1,14 +1,27 @@
 
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/lib/auth";
 
-let tasks = [
+interface Task {
+  id: string;
+  name: string;
+  description: string;
+  status: string;
+  price: number;
+  userId: string;
+  userName?: string;
+}
+
+let tasks: Task[] = [
   {
     id: "1",
     name: "Tâche 1",
     description: "Description 1",
     status: "en cours",
     price: 5000,
-    userId: "123",
+    userId: "user@example.com",
+    userName: "Jean Dupont",
   },
   {
     id: "2",
@@ -16,41 +29,57 @@ let tasks = [
     description: "Description 2",
     status: "terminé",
     price: 10000,
-    userId: "123",
+    userId: "user@example.com",
+    userName: "Jean Dupont",
   },
 ];
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const searchQuery = url.searchParams.get("search")?.toLowerCase() || ""; 
-  
-  let filteredTasks = tasks;
+  const searchQuery = url.searchParams.get("search")?.toLowerCase() || "";
 
-  if (searchQuery) {
-    filteredTasks = tasks.filter(
-      (task) =>
-        task.name.toLowerCase().includes(searchQuery) ||
-        task.description.toLowerCase().includes(searchQuery) ||
-        task.status.toLowerCase().includes(searchQuery)
-    );
+  const session = await getServerSession(authOptions);
+  const userEmail = session?.user?.email;
+
+  if (!userEmail) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const reversedTasks = [...filteredTasks].reverse();
+  const filteredTasks = tasks.filter(
+    (task) =>
+      task.name.toLowerCase().includes(searchQuery) ||
+      task.description.toLowerCase().includes(searchQuery) ||
+      task.status.toLowerCase().includes(searchQuery)
+  );
 
+  const enrichedTasks = filteredTasks.map((task) => ({
+    ...task,
+    userName: task.userName || "Utilisateur inconnu",
+  }));
+
+  const reversedTasks = [...enrichedTasks].reverse();
   return NextResponse.json(reversedTasks);
 }
 
 export async function POST(req: Request) {
-  const data = await req.json();
-  const { name, description, status, price = 0, userId } = data;
+  const session = await getServerSession(authOptions);
+  const userEmail = session?.user?.email;
+  const userName = session?.user?.name;
 
-  const newTask = {
+  if (!userEmail) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { name, description, status, price = 0 } = await req.json();
+
+  const newTask: Task = {
     id: Date.now().toString(),
     name,
     description,
     status,
     price,
-    userId,
+    userId: userEmail,
+    userName: userName || "Utilisateur inconnu",
   };
 
   tasks.push(newTask);
@@ -58,15 +87,18 @@ export async function POST(req: Request) {
 }
 
 export async function PUT(req: Request) {
-  const { id, name, description, status, price, userId } = await req.json();
+  const session = await getServerSession(authOptions);
+  const userEmail = session?.user?.email;
 
+  if (!userEmail) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id, name, description, status, price } = await req.json();
   const task = tasks.find((task) => task.id === id);
 
-  if (!task || task.userId !== userId) {
-    return NextResponse.json(
-      { error: "Unauthorized or task not found" },
-      { status: 403 }
-    );
+  if (!task || task.userId !== userEmail) {
+    return NextResponse.json({ error: "Unauthorized or not found" }, { status: 403 });
   }
 
   task.name = name;
@@ -78,18 +110,20 @@ export async function PUT(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  const { id, userId } = await req.json();
+  const session = await getServerSession(authOptions);
+  const userEmail = session?.user?.email;
 
-  const taskIndex = tasks.findIndex((task) => task.id === id);
-
-  if (taskIndex === -1 || tasks[taskIndex].userId !== userId) {
-    return NextResponse.json(
-      { error: "Unauthorized or task not found" },
-      { status: 403 }
-    );
+  if (!userEmail) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  tasks.splice(taskIndex, 1);
+  const { id } = await req.json();
+  const index = tasks.findIndex((task) => task.id === id);
 
-  return NextResponse.json({ message: "Task deleted successfully" });
+  if (index === -1 || tasks[index].userId !== userEmail) {
+    return NextResponse.json({ error: "Unauthorized or not found" }, { status: 403 });
+  }
+
+  tasks.splice(index, 1);
+  return NextResponse.json({ message: "Task deleted" });
 }
